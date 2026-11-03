@@ -61,7 +61,8 @@ async def cmd_start(message: Message):
 async def cmd_services(message: Message):
     text = "📋 **Мои услуги и стартовые цены:**\n\n"
     for key, val in SERVICES.items():
-        text += f"• {val['name']} — **от {val['price']:,} ₽**\n".replace(",", " ")
+        price_formatted = f"{val['price']:,}".replace(",", " ")
+        text += f"• {val['name']} — **от {price_formatted} ₽**\n"
     await message.answer(text, parse_mode="Markdown")
 
 
@@ -103,7 +104,8 @@ async def process_about(callback: CallbackQuery):
 async def process_services(callback: CallbackQuery):
     text = "📋 **Мои услуги и стартовые цены:**\n\n"
     for key, val in SERVICES.items():
-        text += f"• {val['name']} — **от {val['price']:,} ₽**\n".replace(",", " ")
+        price_formatted = f"{val['price']:,}".replace(",", " ")
+        text += f"• {val['name']} — **от {price_formatted} ₽**\n"
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[
@@ -119,7 +121,8 @@ async def process_services(callback: CallbackQuery):
 async def process_calc(callback: CallbackQuery):
     kb_list = []
     for key, val in SERVICES.items():
-        kb_list.append([InlineKeyboardButton(text=f"{val['name']} ({val['price']:,} ₽)".replace(",", " "), callback_data=f"sel_{key}")])
+        price_formatted = f"{val['price']:,}".replace(",", " ")
+        kb_list.append([InlineKeyboardButton(text=f"{val['name']} ({price_formatted} ₽)", callback_data=f"sel_{key}")])
     kb_list.append([InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="back_to_main")])
 
     await callback.message.edit_text(
@@ -136,11 +139,12 @@ async def process_service_selected(callback: CallbackQuery, state: FSMContext):
     service_info = SERVICES.get(service_key)
 
     await state.update_data(service=service_info["name"], price=service_info["price"])
+    price_formatted = f"{service_info['price']:,}".replace(",", " ")
 
     text = (
-        f"Вы выбрали: **{service_info['name']}** (от {service_info['price']:,} ₽)\n\n"
+        f"Вы выбрали: **{service_info['name']}** (от {price_formatted} ₽)\n\n"
         "Напишите короткий комментарий к вашему заказу (опишите задачу) или нажмите кнопку ниже, чтобы пропустить:"
-    ).replace(",", " ")
+    )
 
     kb = InlineKeyboardMarkup(
         inline_keyboard=[[InlineKeyboardButton(text="⏭ Пропустить и отправить заявку", callback_data="skip_comment")]]
@@ -167,10 +171,12 @@ async def process_skip_comment(callback: CallbackQuery, state: FSMContext):
 
 async def send_order_result(message: Message, data: dict, comment: str):
     user = message.from_user
+    price_formatted = f"{data.get('price', 0):,}".replace(",", " ")
+    
     client_text = (
         f"🎉 **Ваша заявка успешно отправлена!**\n\n"
         f"• Услуга: {data.get('service')}\n"
-        f"• Ориентировочная цена: от {data.get('price'):,} ₽\n".replace(",", " ")
+        f"• Ориентировочная цена: от {price_formatted} ₽\n"
         f"• Комментарий: {comment}\n\n"
         "Я уже получила уведомление и скоро свяжусь с вами!"
     )
@@ -190,7 +196,7 @@ async def send_order_result(message: Message, data: dict, comment: str):
         f"👤 Клиент: {user.full_name} (@{user.username if user.username else 'нет юзернейма'})\n"
         f"🆔 ID: `{user.id}`\n"
         f"💼 Услуга: {data.get('service')}\n"
-        f"💰 Цена: от {data.get('price'):,} ₽\n".replace(",", " ")
+        f"💰 Цена: от {price_formatted} ₽\n"
         f"💬 Комментарий: {comment}"
     )
     
@@ -210,7 +216,6 @@ async def process_back(callback: CallbackQuery):
     await callback.answer()
 
 
-# Простой веб-сервер для удержания бесплатного тарифа Render активным
 async def handle(request):
     return web.Response(text="JessiLis Bot is running!")
 
@@ -234,7 +239,6 @@ async def main():
     dp = Dispatcher()
     dp.include_router(router)
     
-    # Запускаем локальный веб-сервер и бота одновременно
     await web_server()
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
